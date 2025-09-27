@@ -1,5 +1,5 @@
 import React from "react";
-import { FlatList, View, StyleSheet, Text } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 import ProjectCard from "./project-card.component";
 
 export type ProjectListItem = {
@@ -9,7 +9,13 @@ export type ProjectListItem = {
   createdAt: Date | string;
 };
 
-const ProjectList = ({ items }: { items: ProjectListItem[] }) => {
+const ProjectList = ({
+  items,
+  onProjectPress,
+}: {
+  items: ProjectListItem[];
+  onProjectPress?: (project: ProjectListItem) => void;
+}) => {
   return (
     <FlatList
       data={items}
@@ -21,6 +27,7 @@ const ProjectList = ({ items }: { items: ProjectListItem[] }) => {
           image={item.image}
           title={item.title}
           createdAt={item.createdAt as Date}
+          onPress={() => onProjectPress?.(item)}
         />
       )}
       ListEmptyComponent={() => (

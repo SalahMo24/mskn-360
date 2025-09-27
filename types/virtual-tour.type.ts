@@ -31,6 +31,22 @@ export type VirtualTourResponse = {
   created_by: string;
 };
 
+export interface VirtualTourWithScene {
+  id: number;
+  name: string;
+  description: string | null;
+  createdBy: string;
+  employeeId: number;
+  storeId: number;
+  isDeleted: boolean;
+  coordinates: Coordinates | null;
+  virtualTourVersion?: number;
+  virtualTour?: any | null;
+  scenes?: { image: string; scene: string; id: number }[];
+  created_at?: Date;
+  updated_at?: Date;
+}
+
 export enum VirtualTourSceneType {
   BEDROOM = "bedroom",
   LIVING_ROOM = "living_room",

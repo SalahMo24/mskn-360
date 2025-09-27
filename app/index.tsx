@@ -1,5 +1,5 @@
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import DashboardScreen from "../components/virtual-tour/dashboard.screen";
+import DashboardScreen from "../components/virtual-tour/screens/dashboard.screen";
 
 const mockProjects = [
   {
@@ -21,7 +21,7 @@ const mockProjects = [
 export default function Index() {
   return (
     <SafeAreaProvider>
-      <DashboardScreen projects={mockProjects} />
+      <DashboardScreen />
     </SafeAreaProvider>
   );
 }

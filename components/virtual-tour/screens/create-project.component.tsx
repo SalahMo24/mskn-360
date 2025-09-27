@@ -6,10 +6,12 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from "react-native";
-import useCoordinates from "../../hooks/virtual-tour/coordinates.hook";
-import useCreateVirtualTour from "../../hooks/virtual-tour/create-virtual-tour.hook";
+import { SafeAreaView } from "react-native-safe-area-context";
+import useCoordinates from "../../../hooks/virtual-tour/coordinates.hook";
+import useCreateVirtualTour from "../../../hooks/virtual-tour/create-virtual-tour.hook";
 
 export default function CreateProject() {
   const [name, setName] = useState("");
@@ -36,7 +38,8 @@ export default function CreateProject() {
       } as any);
 
       if (res) {
-        router.replace("/");
+        // Navigate to project details using the returned project ID
+        router.replace(`/project-details/${res.data?.id}` as any);
       }
     } catch (e: any) {
       Alert.alert("Error", e?.message || "Failed to create project");
@@ -44,20 +47,29 @@ export default function CreateProject() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create Project</Text>
-      <TextInput
-        value={name}
-        onChangeText={setName}
-        placeholder="Project name"
-        style={styles.input}
-        autoCapitalize="sentences"
-        autoCorrect={false}
-        returnKeyType="done"
-        onSubmitEditing={handleCreate}
-      />
-      {!!error && <Text style={styles.errorText}>{error.message}</Text>}
-
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.content}>
+        <Text style={styles.title}>Create Project</Text>
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          placeholder="Project name"
+          style={styles.input}
+          autoCapitalize="sentences"
+          autoCorrect={false}
+          returnKeyType="done"
+          onSubmitEditing={handleCreate}
+        />
+        {!!error && <Text style={styles.errorText}>{error.message}</Text>}
+      </View>
       <Pressable
         onPress={handleCreate}
         disabled={isCreating || coordinatesLoading}
@@ -71,7 +83,7 @@ export default function CreateProject() {
           {isCreating ? "Creating..." : "Create"}
         </Text>
       </Pressable>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -79,8 +91,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "white",
-    padding: 16,
+
     gap: 12,
+    position: "relative",
+  },
+  content: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  backButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: "#00674f",
+    fontWeight: "500",
   },
   title: {
     fontSize: 22,
@@ -101,6 +135,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     justifyContent: "center",
+    position: "absolute",
+    bottom: "12%",
+    left: 16,
+    right: 16,
   },
   buttonText: {
     color: "white",

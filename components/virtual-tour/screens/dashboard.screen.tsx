@@ -1,27 +1,40 @@
+import { VirtualTourWithScene } from "@/types/virtual-tour.type";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import ProjectList, { ProjectListItem } from "./project-list.component";
+import useCreateVirtualTour from "../../../hooks/virtual-tour/create-virtual-tour.hook";
+import ProjectList from "../project-list.component";
 
-type DashboardScreenProps = {
-  projects: ProjectListItem[];
-};
-
-const DashboardScreen = ({ projects }: DashboardScreenProps) => {
+const DashboardScreen = () => {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const { getVirtualTours } = useCreateVirtualTour();
+  const [virtualTours, setVirtualTours] = useState<VirtualTourWithScene[]>([]);
 
-  const filteredProjects = useMemo(() => {
+  useFocusEffect(
+    useCallback(() => {
+      const fetchVirtualTours = async () => {
+        const tours = await getVirtualTours();
+        setVirtualTours(tours);
+      };
+      fetchVirtualTours();
+    }, [])
+  );
+
+  const filteredVirtualTours = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return projects;
-    return projects.filter((p) => p.title.toLowerCase().includes(normalized));
-  }, [projects, query]);
+    if (!normalized) return virtualTours;
+    return virtualTours.filter((p) =>
+      p.name.toLowerCase().includes(normalized)
+    );
+  }, [virtualTours, query]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Dashboard ({projects.length})</Text>
+      <Text style={styles.title}>Dashboard ({virtualTours?.length})</Text>
       <TextInput
         placeholder="Search projects"
         value={query}
@@ -31,7 +44,17 @@ const DashboardScreen = ({ projects }: DashboardScreenProps) => {
         autoCorrect={false}
         clearButtonMode="while-editing"
       />
-      <ProjectList items={filteredProjects} />
+      <ProjectList
+        items={filteredVirtualTours.map((tour) => ({
+          id: tour.id.toString(),
+          image: tour.scenes?.[0]?.image || "",
+          title: tour.name,
+          createdAt: tour.created_at || new Date(),
+        }))}
+        onProjectPress={(project) =>
+          router.push(`/project-details/${project.id}` as any)
+        }
+      />
       <PlusIcon onPress={() => router.push("project-create" as any)} />
     </SafeAreaView>
   );
@@ -85,7 +108,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
     position: "absolute",
 
-    bottom: "12%",
+    bottom: "9%",
     right: "50%",
     // transform: [{ translateX: "50%" }],
   },

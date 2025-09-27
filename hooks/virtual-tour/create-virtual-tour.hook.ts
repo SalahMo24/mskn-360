@@ -1,29 +1,25 @@
 import Constants from "expo-constants";
 import { useState } from "react";
-import { VirtualTourCreate } from "../../types/virtual-tour.type";
+import {
+  VirtualTourCreate,
+  VirtualTourResponse,
+  VirtualTourWithScene,
+} from "../../types/virtual-tour.type";
 import useCoordinates from "./coordinates.hook";
 
 const createVirtualTourUrl = `${Constants.expoConfig?.extra?.API_URL}/virtual-tour`;
-console.log("createVirtualTourUrl", createVirtualTourUrl);
+
 const useCreateVirtualTour = () => {
-  const {
-    coordinates,
-    loading: coordinatesLoading,
-    error: coordinatesError,
-  } = useCoordinates();
+  const { coordinates, error: coordinatesError } = useCoordinates();
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+  const EMPLOYEE_ID = 2;
+  const STORE_ID = 16;
+  const CREATED_BY = "Kaladin";
 
   const createVirtualTour = async (virtualTour: VirtualTourCreate) => {
     setIsCreating(true);
     setError(null);
-    const EMPLOYEE_ID = 2;
-    const STORE_ID = 16;
-    const CREATED_BY = "Kaladin";
-
-    console.log("coordinates", coordinates);
-    console.log("coordinatesLoading", coordinatesLoading);
-    console.log("coordinatesError", coordinatesError);
 
     // Validate coordinates before proceeding
     if (coordinates.latitude === 0 && coordinates.longitude === 0) {
@@ -50,11 +46,18 @@ const useCreateVirtualTour = () => {
         }),
       });
 
+      console.log("response", response);
       if (!response.ok) {
         throw new Error("Failed to create virtual tour");
       }
 
-      const data = await response.json();
+      const data: {
+        data?: VirtualTourResponse;
+        message: string;
+        error?: Error;
+      } = await response.json();
+
+      console.log("data", data);
       return data;
     } catch (error) {
       setError(error as Error);
@@ -63,6 +66,42 @@ const useCreateVirtualTour = () => {
     }
   };
 
-  return { isCreating, error, createVirtualTour };
+  const getVirtualTours = async (): Promise<VirtualTourWithScene[]> => {
+    console.log("getVirtualTours", createVirtualTourUrl);
+    const response = await fetch(
+      `${createVirtualTourUrl}?storeId=${STORE_ID}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to get virtual tours");
+    }
+
+    const data = await response.json();
+    return data;
+  };
+
+  const getVirtualTour = async (
+    virtualTourId: string
+  ): Promise<VirtualTourWithScene> => {
+    const response = await fetch(
+      `${createVirtualTourUrl}/${virtualTourId}/scenes`
+    );
+    const data = await response.json();
+    return data;
+  };
+
+  return {
+    isCreating,
+    error,
+    createVirtualTour,
+    getVirtualTour,
+    getVirtualTours,
+  };
 };
 export default useCreateVirtualTour;

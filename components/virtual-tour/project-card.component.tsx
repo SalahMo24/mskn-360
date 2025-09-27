@@ -1,16 +1,22 @@
-import { View, Text, StyleSheet, Image } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const ProjectCard = ({
   image,
   title,
   createdAt,
+  onPress,
 }: {
   image: string;
   title: string;
   createdAt: Date;
+  onPress?: () => void;
 }) => {
   return (
-    <View style={styles.container}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <Image source={{ uri: image }} style={styles.image} />
       <View style={styles.info}>
         <Text style={styles.title}>{title}</Text>
@@ -18,7 +24,7 @@ const ProjectCard = ({
           {new Date(createdAt).toLocaleDateString()}
         </Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 const styles = StyleSheet.create({
