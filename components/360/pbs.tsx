@@ -1,6 +1,6 @@
+import { useFrame, useThree } from "@react-three/fiber";
 import * as React from "react";
-import { useMemo, useEffect, useRef, useState } from "react";
-import { useThree, useFrame } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import useRotateObject from "../../hooks/360/rotate-object.hook";
 
@@ -907,11 +907,13 @@ function BakedPanoramaSphere({ texture }: { texture: THREE.Texture }) {
 export function SceneContent({
   photos,
   options,
-  handleExportPanoramaWithWebView,
+  setTextureBuffer,
+  exportPanorama,
 }: {
   photos: PhotoPoint[];
   options?: PanoramaBakeOptions;
-  handleExportPanoramaWithWebView?: (buffer: Uint8Array) => Promise<void>;
+  setTextureBuffer?: (buffer: Uint8Array) => void;
+  exportPanorama: boolean;
 }) {
   const { camera, gl } = useThree();
   const { getCameraVectors } = useRotateObject({ object: camera });
@@ -1050,20 +1052,24 @@ export function SceneContent({
 
     const buffer = new Uint8Array(4096 * 2048 * 4);
     gl.readRenderTargetPixels(target, 0, 0, 4096, 2048, buffer);
-    if (!handleExportPanoramaWithWebView) {
+    if (!setTextureBuffer) {
       console.log("No handleExportPanoramaWithWebView");
       return;
     }
-    const res = await handleExportPanoramaWithWebView(buffer);
-    console.log("res", res);
+    setTextureBuffer(buffer);
+
     // Cleanup
     (rotateMat as any).dispose?.();
     (quad.geometry as any).dispose?.();
     target.dispose();
   };
 
-  // Simple environment lighting to see any extra objects you add later
-  const hemi = useRef<THREE.HemisphereLight>(null);
+  useEffect(() => {
+    if (exportPanorama) {
+      handleExportPanorama();
+    }
+  }, [exportPanorama]);
+
   return (
     <>
       {error && (
@@ -1076,12 +1082,12 @@ export function SceneContent({
         </group>
       )}
 
-      <group position={[0, 0, -0.5]}>
+      {/* <group position={[0, 0, -0.5]}>
         <mesh onClick={handleExportPanorama}>
           <boxGeometry args={[0.1, 0.1, 0.1]} />
           <meshBasicMaterial color="gray" />
         </mesh>
-      </group>
+      </group> */}
 
       {!isBaking && texture && (
         <>

@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   VirtualTourCreate,
   VirtualTourResponse,
+  VirtualTourSceneType,
   VirtualTourWithScene,
 } from "../../types/virtual-tour.type";
 import useCoordinates from "./coordinates.hook";
@@ -13,6 +14,8 @@ const useCreateVirtualTour = () => {
   const { coordinates, error: coordinatesError } = useCoordinates();
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
+  const [isAddingScene, setIsAddingScene] = useState<boolean>(false);
+  const [addSceneError, setAddSceneError] = useState<Error | null>(null);
   const EMPLOYEE_ID = 2;
   const STORE_ID = 16;
   const CREATED_BY = "Kaladin";
@@ -95,13 +98,39 @@ const useCreateVirtualTour = () => {
     const data = await response.json();
     return data;
   };
+  const addSceneToVirtualTour = async (
+    virtualTourId: string,
+    scenes: { image: string; scene: VirtualTourSceneType }[]
+  ): Promise<{ data: VirtualTourWithScene; message: string }> => {
+    setIsAddingScene(true);
+    setAddSceneError(null);
+    const response = await fetch(
+      `${createVirtualTourUrl}/${virtualTourId}/scenes`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          scenes: scenes,
+        }),
+      }
+    );
+    const data = await response.json();
+    setIsAddingScene(false);
+    setAddSceneError(null);
+    return data;
+  };
 
   return {
     isCreating,
+    isAddingScene,
+    addSceneError,
     error,
     createVirtualTour,
     getVirtualTour,
     getVirtualTours,
+    addSceneToVirtualTour,
   };
 };
 export default useCreateVirtualTour;

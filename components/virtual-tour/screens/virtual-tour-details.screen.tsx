@@ -1,5 +1,6 @@
+import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -10,7 +11,11 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import useCreateVirtualTour from "../../../hooks/virtual-tour/create-virtual-tour.hook";
-import { VirtualTourWithScene } from "../../../types/virtual-tour.type";
+import {
+  VirtualTourSceneType,
+  VirtualTourWithScene,
+} from "../../../types/virtual-tour.type";
+import SceneSelectionModal from "../scene-selection-modal.component";
 
 const VirtualTourDetailsScreen = () => {
   const params = useLocalSearchParams();
@@ -22,23 +27,34 @@ const VirtualTourDetailsScreen = () => {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
-  useEffect(() => {
-    const loadVirtualTour = async () => {
-      try {
-        if (id) {
-          const tour = await getVirtualTour(id as string);
-          setVirtualTour(tour);
+  useFocusEffect(
+    useCallback(() => {
+      const loadVirtualTour = async () => {
+        try {
+          if (id) {
+            const tour = await getVirtualTour(id as string);
+            setVirtualTour(tour);
+          }
+        } catch (error) {
+          console.error("Error loading virtual tour:", error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Error loading virtual tour:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      };
 
-    loadVirtualTour();
-  }, [id]);
+      loadVirtualTour();
+    }, [])
+  );
+
+  const handleSceneSelect = (scene: VirtualTourSceneType) => {
+    router.push(`/capture-scene/${id}?scene=${scene}` as any);
+  };
+
+  const handleNewScenePress = () => {
+    setIsModalVisible(true);
+  };
 
   if (loading) {
     return (
@@ -100,12 +116,17 @@ const VirtualTourDetailsScreen = () => {
       </ScrollView>
       <TouchableOpacity
         style={styles.newSceneButton}
-        onPress={() => {
-          router.push(`/new-scene/${virtualTour.id}` as any);
-        }}
+        onPress={handleNewScenePress}
       >
         <Text style={styles.buttonText}>New Scene</Text>
       </TouchableOpacity>
+
+      <SceneSelectionModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
+        onSceneSelect={handleSceneSelect}
+        projectId={id}
+      />
     </SafeAreaView>
   );
 };

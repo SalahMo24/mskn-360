@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber/native";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -21,6 +21,9 @@ import PanoramaCapture from "./panorama-capture.component";
 
 import * as THREE from "three";
 
+import useCreateVirtualTour from "@/hooks/virtual-tour/create-virtual-tour.hook";
+import { VirtualTourSceneType } from "@/types/virtual-tour.type";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SceneContent } from "./pbs";
 import { useTextureToPNGWebView } from "./web-view-bridge.component";
 
@@ -29,13 +32,22 @@ export default function Capture360() {
   const { cameraRef, points, handleCapture, ...rest } = useCaptureImage();
 
   const { uploadImages, isUploading, getPresignedUrl } = useUploadToS3();
+  const { addSceneToVirtualTour, isAddingScene, addSceneError } =
+    useCreateVirtualTour();
+  const params = useLocalSearchParams();
+  const router = useRouter();
+  const id = params.id as string;
+  const scene = params.scene as VirtualTourSceneType;
 
   const [project, setProject] = useState(false);
 
   const { convertBuffer, WebViewBridge } = useTextureToPNGWebView();
   const [preview, setPreview] = useState<string>();
+  const [textureBuffer, setTextureBuffer] = useState<Uint8Array>();
+  const [exportPanorama, setExportPanorama] = useState(false);
 
   const handleExportPanoramaWithWebView = async (buffer: Uint8Array) => {
+    if (!buffer) return;
     try {
       console.log("[Capture360] convertBuffer call start", {
         len: buffer?.length,
@@ -55,11 +67,25 @@ export default function Capture360() {
       const presignedUrl = await getPresignedUrl("image/png", `${Date.now()}`);
       const url = await uploadImages([res], [presignedUrl.url]);
       console.log("[Capture360] uploadImages resolved", url);
+      const data = await addSceneToVirtualTour(id, [
+        { image: url[0], scene: scene },
+      ]);
+      console.log("[Capture360] addSceneToVirtualTour resolved", data);
+      console.log(
+        "[Capture360] Scene added successfully, navigating back to project details"
+      );
+      router.replace(`/project-details/${id}` as any);
     } catch (e) {
       console.error("[Capture360] convertBuffer failed", e);
       throw e;
     }
   };
+
+  useEffect(() => {
+    if (textureBuffer) {
+      handleExportPanoramaWithWebView(textureBuffer);
+    }
+  }, [textureBuffer]);
 
   return (
     <>
@@ -89,7 +115,8 @@ export default function Capture360() {
         {project && (
           <Suspense fallback={null}>
             <SceneContent
-              handleExportPanoramaWithWebView={handleExportPanoramaWithWebView}
+              exportPanorama={exportPanorama}
+              setTextureBuffer={setTextureBuffer}
               options={{
                 thetaMinDeg: 5,
                 thetaMaxDeg: 75,
@@ -170,8 +197,7 @@ export default function Capture360() {
             }}
           >
             <Text style={{ fontSize: 16, fontWeight: "600" }}>
-              Project {points.length} images
-              {project ? " (Processing...)" : ""}
+              {!project ? `Preview ${points.length} images` : `Go back`}
             </Text>
           </Pressable>
 
@@ -186,6 +212,9 @@ export default function Capture360() {
               opacity: isUploading ? 0.5 : 1,
             }}
             disabled={isUploading}
+            onPress={() => {
+              setExportPanorama(true);
+            }}
           >
             {isUploading ? (
               <ActivityIndicator color="#000" />
