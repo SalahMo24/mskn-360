@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   VirtualTourCreate,
@@ -35,9 +36,11 @@ const useCreateVirtualTour = () => {
     }
 
     try {
+      const token = await SecureStore.getItemAsync("token");
       const response = await fetch(createVirtualTourUrl, {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -71,11 +74,13 @@ const useCreateVirtualTour = () => {
 
   const getVirtualTours = async (): Promise<VirtualTourWithScene[]> => {
     console.log("getVirtualTours", createVirtualTourUrl);
+    const token = await SecureStore.getItemAsync("token");
     const response = await fetch(
       `${createVirtualTourUrl}?storeId=${STORE_ID}`,
       {
         method: "GET",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
@@ -92,8 +97,16 @@ const useCreateVirtualTour = () => {
   const getVirtualTour = async (
     virtualTourId: string
   ): Promise<VirtualTourWithScene> => {
+    const token = await SecureStore.getItemAsync("token");
     const response = await fetch(
-      `${createVirtualTourUrl}/${virtualTourId}/scenes`
+      `${createVirtualTourUrl}/${virtualTourId}/scenes`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
     const data = await response.json();
     return data;
@@ -104,11 +117,13 @@ const useCreateVirtualTour = () => {
   ): Promise<{ data: VirtualTourWithScene; message: string }> => {
     setIsAddingScene(true);
     setAddSceneError(null);
+    const token = await SecureStore.getItemAsync("token");
     const response = await fetch(
       `${createVirtualTourUrl}/${virtualTourId}/scenes`,
       {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

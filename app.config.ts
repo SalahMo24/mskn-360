@@ -63,6 +63,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       "expo-router",
       [
+        "expo-secure-store",
+        {
+          configureAndroidBackup: true,
+          faceIDPermission:
+            "Allow $(PRODUCT_NAME) to access your Face ID biometric data.",
+        },
+      ],
+      [
         "expo-splash-screen",
         {
           image: "./assets/images/icon.png",

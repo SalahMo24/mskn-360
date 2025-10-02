@@ -1,9 +1,16 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { VirtualTourWithScene } from "@/types/virtual-tour.type";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import useCreateVirtualTour from "../../../hooks/virtual-tour/create-virtual-tour.hook";
 import ProjectList from "../project-list.component";
@@ -13,7 +20,7 @@ const DashboardScreen = () => {
   const [query, setQuery] = useState("");
   const { getVirtualTours } = useCreateVirtualTour();
   const [virtualTours, setVirtualTours] = useState<VirtualTourWithScene[]>([]);
-
+  const { logout } = useAuth();
   useFocusEffect(
     useCallback(() => {
       const fetchVirtualTours = async () => {
@@ -34,7 +41,13 @@ const DashboardScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Dashboard ({virtualTours?.length})</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>Dashboard ({virtualTours?.length})</Text>
+
+        <TouchableOpacity onPress={() => logout()}>
+          <Text style={styles.title}>Logout</Text>
+        </TouchableOpacity>
+      </View>
       <TextInput
         placeholder="Search projects"
         value={query}
@@ -87,6 +100,11 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     padding: 12,
     // marginTop: 32,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   title: {
     fontSize: 20,
