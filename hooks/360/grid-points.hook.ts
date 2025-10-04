@@ -22,8 +22,8 @@ export const useGridPoints = () => {
 
     const bandAngles = {
       middle: 0,
-      upper: 45,
-      lower: -45,
+      upper: 40,
+      lower: -40,
       north: 90,
       south: -90,
     };
