@@ -1,8 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Alert,
+  ImageBackground,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -45,18 +45,23 @@ const LoginScreen = () => {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <LinearGradient colors={["white", "#019966"]} style={styles.background}>
+      <ImageBackground
+        source={require("../assets/images/mskn-360-dashboard.jpeg")}
+        style={styles.background}
+        resizeMode="cover"
+        blurRadius={30}
+      >
         <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
         >
           {/* <View style={styles.logoContainer}>
-            <Image
-              source={require("../assets/images/logo-green.svg")}
-              style={styles.logo}
-              resizeMode="contain"
-            />
-          </View> */}
+              <Image
+                source={require("../assets/images/logo-green.svg")}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+            </View> */}
 
           <View style={styles.formContainer}>
             <Text style={styles.title}>Welcome Back</Text>
@@ -105,7 +110,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </ImageBackground>
     </KeyboardAvoidingView>
   );
 };
@@ -117,6 +122,7 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
+
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
