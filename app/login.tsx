@@ -1,5 +1,5 @@
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import LoginScreen from "../components/login.screen";
+import LoginScreen from "../components/virtual-tour/screens/login.screen";
 
 export default function Login() {
   return (
