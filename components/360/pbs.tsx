@@ -201,7 +201,7 @@ void main() {
 
     // --- Blend
     vec3 blended = low * wLow + high * wHigh;
-    float w = max(wLow, wHigh);
+    float w = wLow + wHigh;
     w = max(w, 1e-4); // avoid zero-weight holes
 
     gl_FragColor = vec4(blended, w);
@@ -310,7 +310,8 @@ void main() {
     float wLow = pow(cos((1.0 - wBase) * 0.5 * PI), gamma);
     float wHigh = pow(wLow, 4.0);
 
-    float w = max(wLow, wHigh) * (wCenter * wAngle * wBand);
+    float wSelect = wCenter * wAngle * wBand;
+    float w = (wLow + wHigh) * wSelect;
     w = max(w, 1e-4);
 
     // --- Priority boost
@@ -1014,6 +1015,19 @@ export function SceneContent({
     options
   );
 
+  function linearToSRGB8bit(linear: Uint8Array): Uint8Array {
+    const out = new Uint8Array(linear.length);
+    for (let i = 0; i < linear.length; i += 4) {
+      for (let c = 0; c < 3; c++) {
+        let x = linear[i + c] / 255;
+        x = x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+        out[i + c] = Math.min(255, Math.max(0, Math.round(x * 255)));
+      }
+      out[i + 3] = linear[i + 3]; // alpha
+    }
+    return out;
+  }
+
   const handleExportPanorama = async () => {
     if (!texture) {
       console.log("No texture");
@@ -1056,7 +1070,7 @@ export function SceneContent({
       console.log("No handleExportPanoramaWithWebView");
       return;
     }
-    setTextureBuffer(buffer);
+    setTextureBuffer(linearToSRGB8bit(buffer));
 
     // Cleanup
     (rotateMat as any).dispose?.();

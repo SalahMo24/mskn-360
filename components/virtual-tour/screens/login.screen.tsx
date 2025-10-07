@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../../contexts/AuthContext";
 
 const LoginScreen = () => {
   const [phone, setPhone] = useState("");
@@ -46,7 +46,7 @@ const LoginScreen = () => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ImageBackground
-        source={require("../assets/images/mskn-360-dashboard.jpeg")}
+        source={require("../../../assets/images/mskn-360-dashboard.jpeg")}
         style={styles.background}
         resizeMode="cover"
         blurRadius={30}

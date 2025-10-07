@@ -95,7 +95,7 @@ const VirtualTourDetailsScreen = () => {
         <DetailsCard virtualTour={virtualTour} />
 
         {virtualTour.scenes && virtualTour.scenes.length > 0 && (
-          <View style={styles.scenesContainer}>
+          <ScrollView style={styles.scenesContainer}>
             <Text style={styles.sectionTitle}>
               Scenes ({virtualTour.scenes.length})
             </Text>
@@ -111,7 +111,7 @@ const VirtualTourDetailsScreen = () => {
                 </View>
               </View>
             ))}
-          </View>
+          </ScrollView>
         )}
       </ScrollView>
       <TouchableOpacity
@@ -249,6 +249,7 @@ const styles = StyleSheet.create({
   },
   scenesContainer: {
     marginBottom: 24,
+    maxHeight: 300,
   },
   sceneItem: {
     flexDirection: "row",
