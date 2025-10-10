@@ -1,13 +1,6 @@
 import { Canvas } from "@react-three/fiber/native";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  Image,
-  Pressable,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 
 import { CameraView } from "expo-camera";
 import useCaptureImage from "../../hooks/360/capture-image.hook";
@@ -24,12 +17,21 @@ import * as THREE from "three";
 import useCreateVirtualTour from "@/hooks/virtual-tour/create-virtual-tour.hook";
 import { VirtualTourSceneType } from "@/types/virtual-tour.type";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { CheckIcon, EyeIcon, EyeOff, Undo } from "lucide-react-native";
 import { SceneContent } from "./pbs";
 import { useTextureToPNGWebView } from "./web-view-bridge.component";
 
 export default function Capture360() {
   const { width, height } = Dimensions.get("window");
-  const { cameraRef, points, handleCapture, ...rest } = useCaptureImage();
+  const {
+    cameraRef,
+    points,
+    handleCapture,
+
+    undoLastPoint,
+    TOTAL_POINTS_TO_CAPTURE,
+    ...rest
+  } = useCaptureImage();
 
   const { uploadImages, isUploading, getPresignedUrl } = useUploadToS3();
   const { addSceneToVirtualTour, isAddingScene, addSceneError } =
@@ -174,14 +176,99 @@ export default function Capture360() {
         <View
           style={{
             position: "absolute",
-            bottom: 30,
+            bottom: 50,
             left: 0,
             right: 0,
+
             alignItems: "center",
-            gap: 10,
+
+            display: "flex",
+            flexDirection: "row",
+            // backgroundColor: "red",
+            gap: 24,
+            justifyContent: "space-between",
+            paddingHorizontal: 24,
           }}
         >
-          <Pressable
+          <TouchableOpacity
+            style={{
+              backgroundColor:
+                isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                  ? "lightgray"
+                  : "white",
+              width: 50,
+              height: 50,
+              borderWidth: 1,
+              borderColor:
+                isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                  ? "lightgray"
+                  : "white",
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 42,
+              opacity:
+                isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                  ? 0.5
+                  : 1,
+            }}
+            disabled={isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE}
+            onPress={() => {
+              setExportPanorama(true);
+            }}
+          >
+            <CheckIcon color="black" />
+          </TouchableOpacity>
+          <View style={{ flexDirection: "column", alignItems: "center" }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: "white",
+                width: 50,
+                height: 50,
+                borderWidth: 1,
+                borderColor: "white",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 42,
+              }}
+              onPress={() => {
+                setProject(!project);
+              }}
+            >
+              {project ? <EyeOff color="black" /> : <EyeIcon color="black" />}
+            </TouchableOpacity>
+
+            <Text
+              style={{
+                fontSize: 16,
+                color: "black",
+                marginTop: 4,
+                fontWeight: "500",
+              }}
+            >
+              {points.length}/{TOTAL_POINTS_TO_CAPTURE}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={{
+              backgroundColor: "white",
+              width: 50,
+              height: 50,
+              borderWidth: 1,
+              borderColor: "white",
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 42,
+              opacity: isUploading ? 0.5 : 1,
+            }}
+            disabled={isUploading || points.length < 2}
+            onPress={() => {
+              undoLastPoint();
+            }}
+          >
+            <Undo />
+          </TouchableOpacity>
+
+          {/* <Pressable
             style={{
               backgroundColor: "lightblue",
               width: 200,
@@ -199,9 +286,9 @@ export default function Capture360() {
             <Text style={{ fontSize: 16, fontWeight: "600" }}>
               {!project ? `Preview ${points.length} images` : `Go back`}
             </Text>
-          </Pressable>
+          </Pressable> */}
 
-          <Pressable
+          {/* <Pressable
             style={{
               backgroundColor: "pink",
               width: 200,
@@ -223,7 +310,7 @@ export default function Capture360() {
                 Save & Process
               </Text>
             )}
-          </Pressable>
+          </Pressable> */}
         </View>
       )}
     </>

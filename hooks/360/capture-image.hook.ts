@@ -16,6 +16,7 @@ export type PhotoPoint = {
   index: number;
   key: string;
   exif: any;
+  id?: string; // id of the grid point captured (e.g., "middle:0")
 };
 
 export type CapturePoint = {
@@ -60,6 +61,7 @@ const useCaptureImage = () => {
   const [targetPoints, setTargetPoints] = useState<TargetPointsType[]>([]);
   const { getPoints, isAligned, getClosestPoint } = useGetTargetPosition();
   const { captureImage, cameraRef } = useCamera();
+  const TOTAL_POINTS_TO_CAPTURE = 29;
 
   const { generateSphereGrid, canCapture, getAvailablePoints } =
     useGridPoints();
@@ -136,6 +138,12 @@ const useCaptureImage = () => {
       } = await captureFn(camera);
       // if (!isAligned(camera, targetPoint)) return;
       const key = `${new Date().getTime()}-index-${capturedPointIndex}`;
+      // Determine id of the captured grid point if available
+      const capturedId =
+        targetPoints && targetPoints[capturedPointIndex]
+          ? targetPoints[capturedPointIndex].id
+          : undefined;
+
       setPoints((prev) => [
         ...prev,
         {
@@ -149,6 +157,7 @@ const useCaptureImage = () => {
           exif,
           index: capturedPointIndex,
           key,
+          id: capturedId,
         },
       ]);
 
@@ -159,7 +168,7 @@ const useCaptureImage = () => {
 
         if (id) {
           const p = grid.allPoints.get(id);
-          console.log("p", p);
+
           if (p) p.captured = true;
         }
       }
@@ -205,6 +214,88 @@ const useCaptureImage = () => {
     await captureFn(camera, capturedPointIndex);
   };
 
+  const recomputeTargets = () => {
+    try {
+      if (!grid) {
+        setTargetPoints([]);
+        return;
+      }
+      const newTargets: TargetPointsType[] = [];
+      // Keep all captured points for visualization/prevention
+      for (const point of grid.allPoints.values()) {
+        if (point.captured) {
+          newTargets.push({
+            id: point.id,
+            position: point.position.clone(),
+            captured: true,
+            allowCaptureNext: true,
+            quat: point.quat.clone(),
+          });
+        }
+      }
+
+      // Add currently available (unlocked) points
+      const avail = getAvailablePoints(grid);
+      for (const p of avail) {
+        if (!newTargets.some((t) => t.id === p.id)) {
+          newTargets.push({
+            id: p.id,
+            position: p.position.clone(),
+            captured: false,
+            allowCaptureNext: true,
+            quat: p.quat.clone(),
+          });
+        }
+      }
+
+      setTargetPoints(() => newTargets);
+    } catch (error) {
+      console.log("recomputeTargets error", error);
+    }
+  };
+
+  const undoLastPoint = () => {
+    setPoints((prev) => {
+      if (!prev || prev.length === 0) return prev;
+      const newPoints = prev.slice(0, -1);
+      const removedPoint = prev[prev.length - 1];
+
+      // If there will be no points left, reset grid to allow reseeding on next frame
+      if (newPoints.length === 0) {
+        if (grid) {
+          // Attempt to unmark the last captured point for cleanliness
+          const lastId = removedPoint?.id;
+          if (lastId) {
+            const gp = grid.allPoints.get(lastId);
+            if (gp) gp.captured = false;
+          }
+        }
+        grid = null;
+        setTargetPoints([]);
+        return newPoints;
+      }
+
+      // Unmark the corresponding grid point as not captured
+      if (grid) {
+        let idToUncapture = removedPoint?.id;
+        // Fallback: try to resolve via current targetPoints index if id is missing
+        if (!idToUncapture && targetPoints && removedPoint) {
+          const maybe = targetPoints[removedPoint.index];
+          if (maybe) idToUncapture = maybe.id;
+        }
+        if (idToUncapture) {
+          const p = grid.allPoints.get(idToUncapture);
+          if (p) p.captured = false;
+        }
+      }
+
+      // Recompute available/captured target points after the change
+      recomputeTargets();
+
+      return newPoints;
+    });
+  };
+
   return {
     points,
     targetPoint,
@@ -215,6 +306,9 @@ const useCaptureImage = () => {
     targetPoints,
     setTargetPoints,
     getClosestPoint,
+
+    undoLastPoint,
+    TOTAL_POINTS_TO_CAPTURE,
   };
 };
 
