@@ -15,12 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     process.env.EXPO_PUBLIC_AWS_SECRET_ACCESS_KEY;
   const awsBucketName =
     process.env.AWS_BUCKET_NAME || process.env.EXPO_PUBLIC_AWS_BUCKET;
-  const stitchingServiceUrl =
-    process.env.STITCHING_SERVICE_URL ||
-    process.env.EXPO_PUBLIC_STITCHING_SERVICE_URL;
-  const panoramaCreationServiceUrl =
-    process.env.PANORAMA_CREATION_SERVICE_URL ||
-    process.env.EXPO_PUBLIC_PANORAMA_CREATION_SERVICE_URL;
+
   const API_URL = process.env.API_URL || process.env.EXPO_BACKEND_URL;
   const androidPackage =
     process.env.ANDROID_PACKAGE ||
@@ -93,8 +88,6 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       awsAccessKeyId,
       awsSecretAccessKey,
       awsBucketName,
-      stitchingServiceUrl,
-      panoramaCreationServiceUrl,
       API_URL,
       eas: {
         projectId: "fbbd4d3c-c2b6-4654-a551-a30d2065f1a5",

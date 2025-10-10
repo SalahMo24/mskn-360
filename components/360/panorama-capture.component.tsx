@@ -18,9 +18,6 @@ let capturingFirstPoint = true;
 let targetPointClose = -1;
 let currentTimingTarget = -1;
 let startTime = 0;
-let lastQuaternion = new THREE.Quaternion();
-let STEADINESS_THRESHOLD = 0.005; // Adjust based on testing
-let ROLL_THRESHOLD_DEGREES = 10;
 const green = new THREE.Color("rgb(6,85,53)");
 const red = new THREE.Color("rgb(245, 20, 20)");
 const white = new THREE.Color("rgb(255,255,255)");
@@ -89,175 +86,14 @@ export default function PanoramaCapture(props: {
   const meshRefs = useRef<THREE.Mesh[]>([]);
   const materialRefs = useRef<THREE.MeshBasicMaterial[]>([]);
 
-  const isRolling = (
-    camera: THREE.Camera,
-    rollThresholdDegrees: number = 10
-  ) => {
-    // Get the camera's up vector (local Y-axis) in world space
-    const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(
-      camera.quaternion
-    );
-
-    // Get the camera's forward vector (local -Z-axis) in world space
-    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(
-      camera.quaternion
-    );
-
-    // Calculate the world up vector
-    const worldUp = new THREE.Vector3(0, 1, 0);
-
-    // Project camera's up vector onto the plane perpendicular to the forward vector
-    const forwardProjection = cameraForward
-      .clone()
-      .multiplyScalar(cameraUp.dot(cameraForward));
-    const upInPlane = cameraUp.clone().sub(forwardProjection).normalize();
-
-    // Calculate roll angle by comparing with world up projected onto the same plane
-    const worldUpProjection = cameraForward
-      .clone()
-      .multiplyScalar(worldUp.dot(cameraForward));
-    const worldUpInPlane = worldUp.clone().sub(worldUpProjection).normalize();
-
-    // Get the angle between the two up vectors in the plane
-    const rollAngle = Math.acos(
-      Math.max(-1, Math.min(1, upInPlane.dot(worldUpInPlane)))
-    );
-    const rollDegrees = THREE.MathUtils.radToDeg(rollAngle);
-
-    // console.log("Pure Z-axis roll:", rollDegrees.toFixed(2), "degrees");
-
-    return rollDegrees > 92 || rollDegrees < 87;
-  };
-
-  // const noRoll = (camera: THREE.Camera) => {
-  //   const currentRoll = camera.rotation.z;
-  //   const currentPitch = Math.abs(camera.rotation.x);
-  //   if (currentPitch <= 1.58 && currentPitch >= 1.4) {
-  //     console.log(
-  //       "middle-currentRoll",
-  //       currentRoll.toFixed(2),
-  //       currentPitch.toFixed(2)
-  //     );
-  //     return Math.abs(currentRoll) <= 3.2 && Math.abs(currentRoll) >= 2.4;
-  //   }
-  //   if (currentPitch > 1.6) {
-  //     console.log(
-  //       "up-currentRoll",
-  //       currentRoll.toFixed(2),
-  //       currentPitch.toFixed(2)
-  //     );
-  //     return Math.abs(currentRoll) <= 3.2 && Math.abs(currentRoll) >= 2.1;
-  //   }
-  //   if (currentPitch < 1.3) {
-  //     console.log(
-  //       "down-currentRoll",
-  //       currentRoll.toFixed(2),
-  //       currentPitch.toFixed(2)
-  //     );
-  //     return Math.abs(currentRoll) <= 3.2 && Math.abs(currentRoll) >= 2.1;
-  //   }
-  //   console.log(
-  //     "no-currentRoll",
-  //     currentRoll.toFixed(2),
-  //     currentPitch.toFixed(2)
-  //   );
-  //   return false;
-  // };
-
-  // Improved tilt detection function that specifically detects sideways roll
-  // const isTilting = (
-  //   camera: THREE.Camera,
-  //   rollThresholdDegrees: number = 10
-  // ) => {
-  //   // Get the camera's right vector (local X-axis) in world space
-  //   const cameraRight = new THREE.Vector3(1, 0, 0).applyQuaternion(
-  //     camera.quaternion
-  //   );
-
-  //   // Project the right vector onto the horizontal plane (XZ plane)
-  //   const horizontalRight = new THREE.Vector3(
-  //     cameraRight.x,
-  //     0,
-  //     cameraRight.z
-  //   ).normalize();
-
-  //   // Calculate the roll angle by looking at how much the right vector deviates vertically
-  //   const rollAngle = Math.asin(Math.abs(cameraRight.y));
-  //   const rollDegrees = THREE.MathUtils.radToDeg(rollAngle);
-
-  //   console.log("Roll angle:", rollDegrees.toFixed(2), "degrees");
-
-  //   return rollDegrees > rollThresholdDegrees;
-  // };
-
-  const noRoll = (camera: THREE.Camera, rollThresholdDegrees: number = 15) => {
-    // Get the camera's forward direction (where it's pointing)
-    const cameraForward = new THREE.Vector3(0, 0, -1).applyQuaternion(
-      camera.quaternion
-    );
-
-    // Get the camera's up direction (what the camera considers "up")
-    const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(
-      camera.quaternion
-    );
-
-    // World up vector
-    const worldUp = new THREE.Vector3(0, 1, 0);
-
-    // Project world up onto the plane perpendicular to camera forward
-    // This gives us what "up" should be from the camera's perspective
-    const forwardDot = worldUp.dot(cameraForward);
-    const worldUpProjected = worldUp
-      .clone()
-      .sub(cameraForward.clone().multiplyScalar(forwardDot))
-      .normalize();
-
-    // Project camera up onto the same plane
-    const cameraForwardDot = cameraUp.dot(cameraForward);
-    const cameraUpProjected = cameraUp
-      .clone()
-      .sub(cameraForward.clone().multiplyScalar(cameraForwardDot))
-      .normalize();
-
-    // Calculate the roll angle between projected vectors
-    const dotProduct = Math.max(
-      -1,
-      Math.min(1, cameraUpProjected.dot(worldUpProjected))
-    );
-    const rollAngle = Math.acos(dotProduct);
-    const rollDegrees = THREE.MathUtils.radToDeg(rollAngle);
-
-    // console.log(
-    //   "Roll angle (accounting for pitch/yaw):",
-    //   rollDegrees.toFixed(2),
-    //   "degrees"
-    // );
-
-    // Return true if roll is within acceptable range
-    return 90 - rollDegrees <= rollThresholdDegrees;
-  };
-
-  const getPhoneRoll = (camera: THREE.Camera) => {
-    // 1. Define a vector pointing to the "right" in the phone's local space.
-    const localRight = new THREE.Vector3(0, 1, 0);
-
-    // 2. Transform this vector into world space using the camera's current orientation.
-    localRight.applyQuaternion(camera.quaternion);
-
-    // 3. The 'y' component of this vector is a direct measure of the roll.
-    //    If there is no roll, this vector is horizontal and its 'y' is 0.
-    //    We use asin to convert this vertical component into an angle in radians.
-    const rollRadians = Math.asin(localRight.y);
-    // console.log("rollRadians", THREE.MathUtils.radToDeg(rollRadians));
-
-    // 4. Convert to degrees for easier use.
-    return THREE.MathUtils.radToDeg(rollRadians);
-  };
-  const isSteady = (camera: THREE.Camera) => {
-    const delta = lastQuaternion.angleTo(camera.quaternion);
-    lastQuaternion.copy(camera.quaternion);
-    return delta < STEADINESS_THRESHOLD;
-  };
+  // Reset module-scoped flags on mount so re-entering the screen starts fresh
+  useEffect(() => {
+    isCapturing = false;
+    capturingFirstPoint = true;
+    targetPointClose = -1;
+    currentTimingTarget = -1;
+    startTime = 0;
+  }, []);
 
   // Initialize refs (optional, if you need to access them later)
   useEffect(() => {
@@ -289,28 +125,6 @@ export default function PanoramaCapture(props: {
         }
 
         if (isAligned) {
-          // if (!isCurrentlySteady || isExcessivelyTilted) {
-          //   materialRefs.current[closeTarget].color.lerp(
-          //     red, // Red color for tilting/unsteady
-          //     0.1
-          //   );
-          //   // Reset timer when tilting/unsteady to prevent capture
-          //   startTime = 0;
-          //   currentTimingTarget = -1;
-
-          //   // Optional: Log tilt info for debugging
-          //   if (isExcessivelyTilted) {
-          //     const tiltInfo = getTiltInfo(camera.quaternion);
-          //     console.log(
-          //       `Phone tilted too much: ${tiltInfo.rollDegrees.toFixed(1)}° ${
-          //         tiltInfo.tiltDirection
-          //       }`
-          //     );
-          //   }
-
-          //   return;
-          // }
-
           materialRefs.current[closeTarget].color.lerp(white, 0.1);
 
           if (startTime === 0) {
@@ -320,7 +134,7 @@ export default function PanoramaCapture(props: {
           if (
             !isCapturing &&
             startTime &&
-            performance.now() - startTime >= 0.4
+            performance.now() - startTime >= 0.8
           ) {
             isCapturing = true;
 
@@ -385,17 +199,6 @@ export default function PanoramaCapture(props: {
     //     targetPointRef.current.color.lerp(new THREE.Color("rgb(6,85,53)"), 0.1);
     // }
   });
-
-  // Add this helper function to determine orientation and calculate render order
-  const calculateRenderOrder = (index: number): number => {
-    console.log(index);
-    let order = 0;
-    if (index === 0) order = 5;
-    if (index % 5 === 0) order = index + 5;
-    else order = index;
-    console.log(order);
-    return order / 100;
-  };
 
   return (
     <>

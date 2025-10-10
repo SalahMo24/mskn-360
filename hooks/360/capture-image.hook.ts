@@ -1,9 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { Camera } from "@react-three/fiber";
+import { useEffect, useState } from "react";
 import * as THREE from "three";
 import useCamera from "./camera.hook";
-import { Camera } from "@react-three/fiber";
-import useGetTargetPosition from "./target-positions.hook";
 import { SphereGrid, useGridPoints } from "./grid-points.hook";
+import useGetTargetPosition from "./target-positions.hook";
 
 export type PhotoPoint = {
   position: THREE.Vector3;
@@ -58,7 +58,6 @@ const useCaptureImage = () => {
   const [points, setPoints] = useState<PhotoPoint[]>([]);
   const [targetPoint, setTargetPoint] = useState<THREE.Vector3>();
   const [targetPoints, setTargetPoints] = useState<TargetPointsType[]>([]);
-
   const { getPoints, isAligned, getClosestPoint } = useGetTargetPosition();
   const { captureImage, cameraRef } = useCamera();
 
@@ -66,6 +65,10 @@ const useCaptureImage = () => {
     useGridPoints();
 
   // const gridRef = useRef<SphereGrid | null>(null);
+
+  useEffect(() => {
+    grid = null;
+  }, []);
 
   const refreshAvailable = (capturedPointIndex: number) => {
     try {

@@ -8,18 +8,19 @@ import {
   VirtualTourWithScene,
 } from "../../types/virtual-tour.type";
 import useCoordinates from "./coordinates.hook";
-
 const createVirtualTourUrl = `${Constants.expoConfig?.extra?.API_URL}/virtual-tour`;
 
 const useCreateVirtualTour = () => {
   const { coordinates, error: coordinatesError } = useCoordinates();
+  const user = JSON.parse(SecureStore.getItem("user") || "");
+
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
   const [isAddingScene, setIsAddingScene] = useState<boolean>(false);
   const [addSceneError, setAddSceneError] = useState<Error | null>(null);
-  const EMPLOYEE_ID = 2;
-  const STORE_ID = 16;
-  const CREATED_BY = "Kaladin";
+  const EMPLOYEE_ID = user.employee_id;
+  const STORE_ID = user.store_id;
+  const CREATED_BY = user.role;
 
   const createVirtualTour = async (virtualTour: VirtualTourCreate) => {
     setIsCreating(true);
@@ -52,7 +53,6 @@ const useCreateVirtualTour = () => {
         }),
       });
 
-      console.log("response", response);
       if (!response.ok) {
         throw new Error("Failed to create virtual tour");
       }
@@ -63,7 +63,6 @@ const useCreateVirtualTour = () => {
         error?: Error;
       } = await response.json();
 
-      console.log("data", data);
       return data;
     } catch (error) {
       setError(error as Error);

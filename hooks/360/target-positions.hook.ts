@@ -71,7 +71,7 @@ const useGetTargetPosition = () => {
     alignmentThreshold = 10
   ): [number, number, boolean] | undefined => {
     if (!targetPoints) return;
-    const secondAlignmentThreshold = 3;
+    const secondAlignmentThreshold = 5;
 
     const cameraForward = new THREE.Vector3(0, 0, -1)
       .applyQuaternion(camera.quaternion)
