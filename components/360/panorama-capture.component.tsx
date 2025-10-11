@@ -25,7 +25,7 @@ const white = new THREE.Color("rgb(255,255,255)");
 export default function PanoramaCapture(props: {
   points: PhotoPoint[];
   targetPoints: TargetPointsType[];
-  targetPoint?: THREE.Vector3 | undefined;
+
   getClosestPoint: (
     camera: THREE.Camera,
     targetPoints?: TargetPointsType[],
@@ -41,9 +41,7 @@ export default function PanoramaCapture(props: {
     targetPoint?: THREE.Vector3 | undefined,
     alignmentThreshold?: number
   ) => boolean;
-  setTargetPoint: (
-    value: React.SetStateAction<THREE.Vector3 | undefined>
-  ) => void;
+
   setTargetPoints: React.Dispatch<React.SetStateAction<TargetPointsType[]>>;
 }) {
   // const sensor = useAnimatedSensor(SensorType.ROTATION, { interval: "auto" });
@@ -52,10 +50,10 @@ export default function PanoramaCapture(props: {
 
   const {
     points,
-    targetPoint,
+
     handleCapture,
     isAligned,
-    setTargetPoint,
+
     targetPoints,
     getClosestPoint,
     setTargetPoints,
@@ -167,7 +165,7 @@ export default function PanoramaCapture(props: {
       Math.abs(camera.rotation.x) >= 1.48 &&
       points.length === 0 &&
       capturingFirstPoint &&
-      !targetPoint
+      !targetPoints.length
     ) {
       capturingFirstPoint = false;
       const nextPoint = getInitialPoint(camera);

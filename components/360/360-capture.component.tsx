@@ -1,6 +1,6 @@
 import { Canvas } from "@react-three/fiber/native";
 import React, { useEffect, useState } from "react";
-import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
+import { Dimensions, Text, TouchableOpacity, View } from "react-native";
 
 import { CameraView } from "expo-camera";
 import useCaptureImage from "../../hooks/360/capture-image.hook";
@@ -44,7 +44,7 @@ export default function Capture360() {
   const [project, setProject] = useState(false);
 
   const { convertBuffer, WebViewBridge } = useTextureToPNGWebView();
-  const [preview, setPreview] = useState<string>();
+
   const [textureBuffer, setTextureBuffer] = useState<Uint8Array>();
   const [exportPanorama, setExportPanorama] = useState(false);
 
@@ -64,7 +64,6 @@ export default function Capture360() {
         // Keep yaw as-is to preserve baked texture rotation
         yawOffsetDeg: 0,
       });
-      setPreview(res);
       console.log("[Capture360] convertBuffer resolved", res);
       const presignedUrl = await getPresignedUrl("image/png", `${Date.now()}`);
       const url = await uploadImages([res], [presignedUrl.url]);
@@ -140,9 +139,7 @@ export default function Capture360() {
         )}
       </Canvas>
       <RotateIcon />
-      {preview && (
-        <Image source={{ uri: preview }} style={{ width: 100, height: 100 }} />
-      )}
+
       <View
         style={{
           position: "absolute",
@@ -190,34 +187,38 @@ export default function Capture360() {
             paddingHorizontal: 24,
           }}
         >
-          <TouchableOpacity
-            style={{
-              backgroundColor:
+          {project && (
+            <TouchableOpacity
+              style={{
+                backgroundColor:
+                  isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                    ? "lightgray"
+                    : "white",
+                width: 50,
+                height: 50,
+                borderWidth: 1,
+                borderColor:
+                  isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                    ? "lightgray"
+                    : "white",
+                justifyContent: "center",
+                alignItems: "center",
+                borderRadius: 42,
+                opacity:
+                  isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
+                    ? 0.5
+                    : 1,
+              }}
+              disabled={
                 isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
-                  ? "lightgray"
-                  : "white",
-              width: 50,
-              height: 50,
-              borderWidth: 1,
-              borderColor:
-                isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
-                  ? "lightgray"
-                  : "white",
-              justifyContent: "center",
-              alignItems: "center",
-              borderRadius: 42,
-              opacity:
-                isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE
-                  ? 0.5
-                  : 1,
-            }}
-            disabled={isUploading || points.length !== TOTAL_POINTS_TO_CAPTURE}
-            onPress={() => {
-              setExportPanorama(true);
-            }}
-          >
-            <CheckIcon color="black" />
-          </TouchableOpacity>
+              }
+              onPress={() => {
+                setExportPanorama(true);
+              }}
+            >
+              <CheckIcon color="black" />
+            </TouchableOpacity>
+          )}
           <View style={{ flexDirection: "column", alignItems: "center" }}>
             <TouchableOpacity
               style={{

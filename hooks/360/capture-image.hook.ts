@@ -16,7 +16,7 @@ export type PhotoPoint = {
   index: number;
   key: string;
   exif: any;
-  id?: string; // id of the grid point captured (e.g., "middle:0")
+  id: string; // id of the grid point captured (e.g., "middle:0")
 };
 
 export type CapturePoint = {
@@ -57,7 +57,6 @@ let grid: SphereGrid | null = null;
 
 const useCaptureImage = () => {
   const [points, setPoints] = useState<PhotoPoint[]>([]);
-  const [targetPoint, setTargetPoint] = useState<THREE.Vector3>();
   const [targetPoints, setTargetPoints] = useState<TargetPointsType[]>([]);
   const { getPoints, isAligned, getClosestPoint } = useGetTargetPosition();
   const { captureImage, cameraRef } = useCamera();
@@ -100,6 +99,40 @@ const useCaptureImage = () => {
       console.log("error", error);
     }
   };
+  const refreshAfterUndo = (capturedPointIndex: number) => {
+    try {
+      if (!grid) return;
+      const avail = getAvailablePoints(grid);
+      const availIds = new Set(avail.map((p) => p.id));
+
+      const newTargets = targetPoints.map((pnt, i) => {
+        if (i === capturedPointIndex) {
+          return { ...pnt, captured: false };
+        }
+        return pnt;
+      });
+
+      for (const p of avail) {
+        if (newTargets.some((itm) => itm.id === p.id)) continue;
+        newTargets.push({
+          id: p.id,
+          position: p.position.clone(),
+          captured: p.captured,
+          allowCaptureNext: true,
+          quat: p.quat.clone(),
+        });
+      }
+
+      // Remove any uncaptured targets that are no longer available
+      const filtered = newTargets.filter(
+        (t) => t.captured || availIds.has(t.id)
+      );
+
+      setTargetPoints(() => filtered);
+    } catch (error) {
+      console.log("error", error);
+    }
+  };
 
   const capture = async (camera: CameraType) => {
     const quat = camera.quaternion.clone();
@@ -114,6 +147,7 @@ const useCaptureImage = () => {
       position: getPoints(camera),
       direction,
       imageUri: res?.texture,
+      texture: res?.texture,
       euler,
       quat,
       localUri: res?.uri,
@@ -121,13 +155,30 @@ const useCaptureImage = () => {
     };
   };
 
-  const handleCapturePoint = (
-    captureFn: (camera: CameraType) => Promise<CapturePoint>
+  const handleCapturePoint = async (
+    camera: CameraType,
+    capturedPointIndex: number
   ) => {
-    return async (camera: CameraType, capturedPointIndex: number) => {
-      // if (!isAligned(camera, targetPoint)) return;
-      const {
-        position,
+    // if (!isAligned(camera, targetPoint)) return;
+    const {
+      position,
+      direction,
+      imageUri,
+      texture,
+      euler,
+      quat,
+      localUri,
+      exif,
+    } = await capture(camera);
+    // if (!isAligned(camera, targetPoint)) return;
+    const key = `${new Date().getTime()}-index-${capturedPointIndex}`;
+    // Determine id of the captured grid point if available
+    const capturedId = targetPoints[capturedPointIndex].id;
+
+    setPoints((prev) => [
+      ...prev,
+      {
+        position: position.hitPoint,
         direction,
         imageUri,
         texture,
@@ -135,123 +186,24 @@ const useCaptureImage = () => {
         quat,
         localUri,
         exif,
-      } = await captureFn(camera);
-      // if (!isAligned(camera, targetPoint)) return;
-      const key = `${new Date().getTime()}-index-${capturedPointIndex}`;
-      // Determine id of the captured grid point if available
-      const capturedId =
-        targetPoints && targetPoints[capturedPointIndex]
-          ? targetPoints[capturedPointIndex].id
-          : undefined;
+        index: capturedPointIndex,
+        key,
+        id: capturedId,
+      },
+    ]);
 
-      setPoints((prev) => [
-        ...prev,
-        {
-          position: position.hitPoint,
-          direction,
-          imageUri,
-          texture,
-          euler,
-          quat,
-          localUri,
-          exif,
-          index: capturedPointIndex,
-          key,
-          id: capturedId,
-        },
-      ]);
+    if (!grid) {
+      grid = generateSphereGrid(quat);
+    } else {
+      const id = targetPoints[capturedPointIndex].id;
 
-      if (!grid) {
-        grid = generateSphereGrid(quat);
-      } else {
-        const id = targetPoints[capturedPointIndex].id;
+      if (id) {
+        const p = grid.allPoints.get(id);
 
-        if (id) {
-          const p = grid.allPoints.get(id);
-
-          if (p) p.captured = true;
-        }
+        if (p) p.captured = true;
       }
-      refreshAvailable(capturedPointIndex);
-
-      // const newTargetPoints = targetPoints.map((itm, i) => {
-      //   if (i === capturedPointIndex)
-      //     return {
-      //       position: itm.position,
-      //       captured: true,
-      //       allowCaptureNext: itm.allowCaptureNext,
-      //       quat: itm.quat,
-      //     };
-      //   return itm;
-      // });
-
-      // if (
-      //   targetPoints[capturedPointIndex].allowCaptureNext &&
-      //   position.nextPoint
-      // ) {
-      //   newTargetPoints.push(
-      //     position.nextPoint.upDirection,
-      //     position.nextPoint.secondUpDirection,
-      //     position.nextPoint.downDirection,
-      //     position.nextPoint.secondDownDirection,
-      //     position.nextPoint.leftDirection
-      //   );
-      // }
-
-      // setTargetPoints(() => [...newTargetPoints]);
-    };
-  };
-
-  const handleCapture = async (
-    camera: CameraType,
-    capturedPointIndex: number
-  ) => {
-    const captureFn =
-      // points.length > 0
-      handleCapturePoint(capture);
-    // : handleCaptureFirstPoint(capture);
-
-    await captureFn(camera, capturedPointIndex);
-  };
-
-  const recomputeTargets = () => {
-    try {
-      if (!grid) {
-        setTargetPoints([]);
-        return;
-      }
-      const newTargets: TargetPointsType[] = [];
-      // Keep all captured points for visualization/prevention
-      for (const point of grid.allPoints.values()) {
-        if (point.captured) {
-          newTargets.push({
-            id: point.id,
-            position: point.position.clone(),
-            captured: true,
-            allowCaptureNext: true,
-            quat: point.quat.clone(),
-          });
-        }
-      }
-
-      // Add currently available (unlocked) points
-      const avail = getAvailablePoints(grid);
-      for (const p of avail) {
-        if (!newTargets.some((t) => t.id === p.id)) {
-          newTargets.push({
-            id: p.id,
-            position: p.position.clone(),
-            captured: false,
-            allowCaptureNext: true,
-            quat: p.quat.clone(),
-          });
-        }
-      }
-
-      setTargetPoints(() => newTargets);
-    } catch (error) {
-      console.log("recomputeTargets error", error);
     }
+    refreshAvailable(capturedPointIndex);
   };
 
   const undoLastPoint = () => {
@@ -290,7 +242,7 @@ const useCaptureImage = () => {
       }
 
       // Recompute available/captured target points after the change
-      recomputeTargets();
+      refreshAfterUndo(removedPoint.index);
 
       return newPoints;
     });
@@ -298,11 +250,10 @@ const useCaptureImage = () => {
 
   return {
     points,
-    targetPoint,
-    handleCapture,
+
+    handleCapture: handleCapturePoint,
     cameraRef,
     isAligned,
-    setTargetPoint,
     targetPoints,
     setTargetPoints,
     getClosestPoint,
